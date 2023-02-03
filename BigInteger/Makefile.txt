@@ -1,2 +1,0 @@
-all: test.cpp, Biginteger.h
-	g++ -g test.cpp -o ./test
