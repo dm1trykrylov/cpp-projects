@@ -36,3 +36,5 @@
 Makefile
 */exec/*
 
+*/*.json
+
