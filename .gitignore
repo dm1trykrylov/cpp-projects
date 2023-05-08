@@ -37,4 +37,5 @@ Makefile
 */exec/*
 
 */*.json
+*/.vscode/*
 
