@@ -175,7 +175,7 @@ void test4() {
   }
   assert(ss == "151");
 }
-/*
+
 void test5() {
     Deque<int> d;
 
@@ -208,7 +208,6 @@ void test5() {
     //}
     assert(s == "4321");
 }
-*/
 struct VerySpecialType {
   int x = 0;
 
@@ -225,7 +224,7 @@ struct NotDefaultConstructible {
  public:
   int x = 0;
 };
-/*
+
 void test6() {
     Deque<NotDefaultConstructible> d;
 
@@ -284,7 +283,7 @@ void test7() {
     }
 
 }
-*/
+
 }  // namespace TestsByMesyarik
 
 /*
@@ -724,12 +723,12 @@ int main() {
                 "You cannot use std::deque, cheater!");
 
   TestsByMesyarik::test1();
-  TestsByMesyarik::test2();
-  TestsByMesyarik::test3();
-  TestsByMesyarik::test4(); /*
+  TestsByMesyarik::test2(); /*
+   TestsByMesyarik::test3();*/
+  TestsByMesyarik::test4(); 
    TestsByMesyarik::test5();
    TestsByMesyarik::test6();
-   TestsByMesyarik::test7();
+   TestsByMesyarik::test7();/*
 
    TestsByUnrealf1::testDefault();
    TestsByUnrealf1::testCopy();

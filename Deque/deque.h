@@ -21,34 +21,76 @@ class Deque {
         : common_iterator<isConst>(deque, 0) {}
     common_iterator(std::conditional_t<isConst, const Deque&, Deque&> deque,
                     size_type pos)
-        : deque_(deque), pos_(pos) {}
+        : deque_(deque), pos_(pos) {
+      if (pos_ < deque.size()) {
+        ptr_ = &deque[pos_];
+      } else {
+        ptr_ = nullptr;
+      }
+    }
 
     common_iterator(const common_iterator<false>& other)
         : deque_(other.IDeque()), pos_(other.Pos()) {}
+    common_iterator& operator=(const common_iterator& other) {
+      // deque_ = other.deque_;
+      pos_ = other.pos_;
+      ptr_ = other.ptr_;
+      return *this;
+    }
     common_iterator& operator++() {
       ++pos_;
+      if (pos_ < deque_.size()) {
+        ptr_ = &deque_[pos_];
+      } else {
+        ptr_ = nullptr;
+      }
       return *this;
     }
     common_iterator& operator--() {
       --pos_;
+      if (pos_ < deque_.size()) {
+        ptr_ = &deque_[pos_];
+      } else {
+        ptr_ = nullptr;
+      }
       return *this;
     }
     common_iterator& operator+=(difference_type offset) {
       pos_ += offset;
+      if (pos_ < deque_.size()) {
+        ptr_ = &deque_[pos_];
+      } else {
+        ptr_ = nullptr;
+      }
       return *this;
     }
     common_iterator& operator-=(difference_type offset) {
       pos_ -= offset;
+      if (pos_ < deque_.size()) {
+        ptr_ = &deque_[pos_];
+      } else {
+        ptr_ = nullptr;
+      }
       return *this;
     }
     common_iterator operator-(difference_type offset) {
       auto tmp = *this;
       tmp.pos_ -= offset;
+      if (tmp.pos_ < deque_.size()) {
+        tmp.ptr_ = &deque_[tmp.pos_];
+      } else {
+        tmp.ptr_ = nullptr;
+      }
       return tmp;
     }
     common_iterator operator+(difference_type offset) {
       auto tmp = *this;
       tmp.pos_ += offset;
+      if (pos_ < deque_.size()) {
+        ptr_ = &deque_[pos_];
+      } else {
+        ptr_ = nullptr;
+      }
       return tmp;
     }
 
@@ -69,24 +111,21 @@ class Deque {
     }
 
     bool operator!=(const common_iterator& other) const noexcept {
-      return pos_ != other.pos_;
+      return ptr_ != other.ptr_;
     }
 
     bool operator==(const common_iterator& other) const noexcept {
-      return pos_ == other.pos_;
+      return ptr_ == other.ptr_;
     }
 
     difference_type operator-(const common_iterator& other) const noexcept {
       return static_cast<difference_type>(pos_) -
              static_cast<difference_type>(other.pos_);
     }
-    // reference operator*() { return deque_[pos_]; }
-    // const_reference operator*() const { return deque_[pos_]; }
     std::conditional_t<isConst, const_reference, reference> operator*() {
-      return deque_[pos_];
+      return *ptr_;
     }
-    // pointer operator->() { return deque_.at_ptr(pos_); }
-    // const_pointer operator->() const { return deque_.at_ptr(pos_); }
+
     std::conditional_t<isConst, const_pointer, pointer> operator->() {
       return deque_.at_ptr(pos_);
     }
@@ -98,13 +137,14 @@ class Deque {
    private:
     std::conditional_t<isConst, const Deque&, Deque&> deque_;
     size_t pos_;
+    std::conditional_t<isConst, const_pointer, pointer> ptr_;
   };
 
   using iterator = common_iterator<false>;
   using const_iterator = common_iterator<true>;
 
  private:
-  static const size_t kChunkSize = 16;
+  static const size_t kChunkSize = 64;
   map_type map_;
   size_type begin_idx_;
   size_type end_idx_;
@@ -123,7 +163,7 @@ class Deque {
       push_back(value);
     }
   }
-  Deque(const Deque& other) {
+  Deque(const Deque& other) : Deque() {
     for (size_t i = 0; i < other.size(); ++i) {
       push_back(other[i]);
     }
@@ -340,6 +380,7 @@ typename Deque<T, Alloc>::iterator Deque<T, Alloc>::insert(const_iterator pos,
     alloc_.construct(&this->operator[](i), T(this->operator[](i - 1)));
   }
   alloc_.construct(&this->operator[](insert_pos), T(value));
+  // ++size_;
   return iterator(*this, insert_pos + 1);
 }
 
@@ -351,6 +392,7 @@ typename Deque<T, Alloc>::iterator Deque<T, Alloc>::erase(const_iterator pos) {
     alloc_.construct(&this->operator[](i), T(this->operator[](i + 1)));
   }
   // alloc_.deallocate(&this->operator[](size_ - 1));
+  --size_;
   return iterator(*this, erase_pos + 1);
 }
 
