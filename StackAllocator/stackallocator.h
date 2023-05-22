@@ -118,26 +118,32 @@ class List {
     Node(const T& value, BaseNode* prev, BaseNode* next)
         : BaseNode(prev, next), value(std::move(value)) {}
   };
-  template <bool isConst>
+  template <bool IsConst>
   class CommonIterator {
    protected:
     BaseNode* node_;
 
    public:
     using iterator_category = std::bidirectional_iterator_tag;
+    using iterator_type = CommonIterator<IsConst>;
     using value_type = T;
-    using pointer = T*;
-    using const_pointer = const T*;
-    using reference = T&;
-    using const_reference = const T&;
+    using pointer = std::conditional_t<IsConst, const T*, T*>;
+    using reference = std::conditional_t<IsConst, const T&, T&>;
     using size_type = size_t;
     using difference_type = std::ptrdiff_t;
 
-    CommonIterator(const CommonIterator<false>& other) : node_(other.base()) {}
+    CommonIterator(const CommonIterator&) = default;
+    CommonIterator(CommonIterator&&) = default;
+
+    template <bool IsConst_ = IsConst, class = std::enable_if_t<IsConst_>>
+    CommonIterator(const CommonIterator<false>& other) : node_(other.GetNode()) {}
     explicit CommonIterator(BaseNode* node) : node_(node) {}
 
-    BaseNode* base() const { return node_; }
-    void set_base(BaseNode* node) { node_ = node; }
+    CommonIterator& operator=(const CommonIterator&) = default;
+    CommonIterator& operator=(CommonIterator&&) = default;
+
+    BaseNode* GetNode() const { return node_; }
+
     CommonIterator& operator++() {
       node_ = node_->next;
       return *this;
@@ -156,14 +162,8 @@ class List {
 
     CommonIterator operator--(int) {
       CommonIterator copy = *this;
-      // node_ = node_->prev;
       --(*this);
       return copy;
-    }
-
-    CommonIterator& operator=(const CommonIterator& other) {
-      node_ = other.node_;
-      return *this;
     }
 
     bool operator==(const CommonIterator& other) const {
@@ -174,40 +174,11 @@ class List {
       return node_ != other.node_;
     }
 
-    std::conditional_t<isConst, const_pointer, pointer> operator->() const {
+    pointer operator->() const {
       return std::addressof<pointer>(static_cast<Node*>(node_)->value);
     }
 
-    std::conditional_t<isConst, const_reference, reference> operator*() const {
-      return static_cast<Node*>(node_)->value;
-    }
-  };
-  class NonConstCommonIterator : public CommonIterator<false> {
-   public:
-    NonConstCommonIterator(const NonConstCommonIterator& other)
-        : CommonIterator<false>(other.base()) {}
-    NonConstCommonIterator(const CommonIterator<false>& other)
-        : CommonIterator<false>(other.base()) {}
-    NonConstCommonIterator(BaseNode* node) : CommonIterator<false>(node) {}
-    NonConstCommonIterator& operator=(const NonConstCommonIterator& other) {
-      this->node_ = other.node_;
-      return *this;
-    }
-  };
-  class ConstCommonIterator : public CommonIterator<true> {
-   public:
-    ConstCommonIterator(const ConstCommonIterator& other)
-        : CommonIterator<true>(other.base()) {}
-    ConstCommonIterator(const NonConstCommonIterator& other)
-        : CommonIterator<true>(other.base()) {}
-    template <bool isConst>
-    ConstCommonIterator(const CommonIterator<isConst>& other)
-        : CommonIterator<true>(other.base()) {}
-    ConstCommonIterator& operator=(const ConstCommonIterator& other) {
-      this->node_ = other.node_;
-      return *this;
-    }
-    ConstCommonIterator(BaseNode* node) : CommonIterator<true>(node) {}
+    reference operator*() const { return static_cast<Node*>(node_)->value; }
   };
 
  public:
@@ -221,11 +192,10 @@ class List {
   using reference = value_type&;
   using const_reference = const value_type&;
   using pointer = typename std::allocator_traits<Allocator>::pointer;
-  using const_pointer = typename std::allocator_traits<Allocator>::const_pointer;
-  // using iterator = CommonIterator<false>;
-  using iterator = NonConstCommonIterator;
-  // using const_iterator = CommonIterator<true>;
-  using const_iterator = ConstCommonIterator;
+  using const_pointer =
+      typename std::allocator_traits<Allocator>::const_pointer;
+  using iterator = CommonIterator<false>;
+  using const_iterator = CommonIterator<true>;
   using reverse_iterator = std::reverse_iterator<iterator>;
   using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
@@ -377,7 +347,7 @@ List<T, Allocator>::List(List&& other) noexcept
 
 template <typename T, typename Allocator>
 void List<T, Allocator>::erase(const_iterator pos) {
-  Node* node = static_cast<Node*>(pos.base());
+  Node* node = static_cast<Node*>(pos.GetNode());
   if (node->prev != nullptr) {
     node->prev->next = node->next;
   }
@@ -429,7 +399,7 @@ typename List<T, Allocator>::iterator List<T, Allocator>::insert(
     allocator_traits::deallocate(alloc_, node, 1);
     throw;
   }
-  BaseNode* next_node = pos.base();
+  BaseNode* next_node = pos.GetNode();
   node->next = next_node;
   node->prev = next_node->prev;
   next_node->prev->next = node;
@@ -450,7 +420,7 @@ typename List<T, Allocator>::iterator List<T, Allocator>::insert(
     allocator_traits::deallocate(alloc_, node, 1);
     throw;
   }
-  BaseNode* next_node = pos.base();
+  BaseNode* next_node = pos.GetNode();
   node->next = next_node;
   node->prev = next_node->prev;
   next_node->prev->next = node;
