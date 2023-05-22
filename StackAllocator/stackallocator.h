@@ -210,7 +210,7 @@ class List {
  public:
   using value_type = T;
   using allocator_type = typename std::allocator_traits<
-      Allocator>::rebind_alloc<List<T, Allocator>::BaseNode>;
+      Allocator>::rebind_alloc<List<T, Allocator>::Node>;
   using allocator_traits = std::allocator_traits<allocator_type>;
   using base_allocator_traits = std::allocator_traits<Allocator>;
   using size_type = size_t;
@@ -278,7 +278,7 @@ class List {
 
  private:
   typename std::allocator_traits<Allocator>::rebind_alloc<
-      List<T, Allocator>::BaseNode>
+      List<T, Allocator>::/*Base*/Node>
       alloc_;
   BaseNode* head_;
   size_type size_;
@@ -286,7 +286,7 @@ class List {
 
 template <typename T, typename Allocator>
 List<T, Allocator>::List(const Allocator& alloc) : alloc_(alloc), size_(0) {
-  head_ = allocator_traits::allocate(alloc_, 1);
+  head_ = static_cast<BaseNode*>(allocator_traits::allocate(alloc_, 1));
   head_->next = head_;
   head_->prev = head_;
 }
@@ -356,7 +356,7 @@ void List<T, Allocator>::clear() {
 template <typename T, typename Allocator>
 List<T, Allocator>::~List() {
   clear();
-  allocator_traits::deallocate(alloc_, head_, 1);
+  allocator_traits::deallocate(alloc_, static_cast<Node*>(head_), 1);
 }
 
 template <typename T, typename Allocator>
@@ -377,10 +377,10 @@ List<T, Allocator>& List<T, Allocator>::operator=(const List& other) {
 template <typename T, typename Allocator>
 typename List<T, Allocator>::iterator List<T, Allocator>::insert(
     const_iterator pos, const_reference value) {
-  BaseNode* b_node = allocator_traits::allocate(alloc_, 1);
-  allocator_traits::construct(alloc_, b_node, /*value,*/ nullptr, nullptr);
-  Node* node = static_cast<Node*>(b_node);
-  //node->value = value;
+  Node* node = allocator_traits::allocate(alloc_, 1);
+  allocator_traits::construct(alloc_, node, value, nullptr, nullptr);
+  // Node* node = static_cast<Node*>(b_node);
+  //  node->value = value;
   BaseNode* next_node = pos.base();
   node->next = next_node;
   node->prev = next_node->prev;
